@@ -1,0 +1,294 @@
+"use client"
+
+import { useState, useEffect, useRef } from "react"
+import { QuizTaker } from "@/components/quiz-taker"
+import { QuizManager } from "@/components/quiz-manager"
+import { UserDashboard } from "@/components/user-dashboard"
+import { AuthModal } from "@/components/auth/auth-modal"
+import { ErrorBoundary } from "@/components/error-boundary"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BookOpen, Settings, Upload, LogIn, UserPlus } from 'lucide-react'
+import type { User, AuthResponse, QuizProgress } from "@/types/user"
+
+export default function QuizApp() {
+  // Hydration gate: ensure initial client render matches server
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => setHydrated(true), [])
+
+  const [currentView, setCurrentView] = useState<"home" | "take-quiz" | "manage-quiz" | "dashboard">("home")
+  const [user, setUser] = useState<User | null>(null)
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authModalView, setAuthModalView] = useState<"login" | "register">("login")
+  const [resumeProgress, setResumeProgress] = useState<QuizProgress | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Check for existing auth token only on client
+    checkAuthStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const checkAuthStatus = async () => {
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null
+      const userData = typeof window !== "undefined" ? localStorage.getItem("user") : null
+
+      if (token && userData) {
+        // Verify token with server
+        const response = await fetch("/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+
+        if (response.ok) {
+          const user = await response.json()
+          setUser(user)
+        } else {
+          // Token is invalid, clear storage
+          localStorage.removeItem("auth_token")
+          localStorage.removeItem("user")
+        }
+      }
+    } catch (error) {
+      console.error("Auth check failed:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAuthSuccess = (authData: AuthResponse) => {
+    setUser(authData.user)
+    setShowAuthModal(false)
+    setCurrentView("dashboard")
+  }
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_token")
+      localStorage.removeItem("user")
+    }
+    setUser(null)
+    setCurrentView("home")
+  }
+
+  const handleResumeQuiz = (progress: QuizProgress) => {
+    setResumeProgress(progress)
+    setCurrentView("take-quiz")
+  }
+
+  const handleStartQuiz = () => {
+    setResumeProgress(null)
+    setCurrentView("take-quiz")
+  }
+
+  const showAuthModalWithView = (view: "login" | "register") => {
+    setAuthModalView(view)
+    setShowAuthModal(true)
+  }
+
+  // During SSR and before the client is mounted, render a stable shell to avoid mismatches
+  if (!hydrated) {
+    return (
+      <div
+        className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center"
+        suppressHydrationWarning
+      >
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100" suppressHydrationWarning>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Quiz Master</h1>
+          <p className="text-gray-600">Advanced Quiz Application with User Progress Tracking</p>
+        </div>
+
+        {/* Authentication Modal */}
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onAuthSuccess={handleAuthSuccess}
+          defaultView={authModalView}
+        />
+
+        {currentView === "home" && (
+          <div className="max-w-4xl mx-auto">
+            {/* Auth Section for non-logged in users */}
+            {!user && (
+              <Card className="mb-8 border-blue-200 bg-blue-50">
+                <CardContent className="p-6 text-center">
+                  <h2 className="text-xl font-semibold mb-2">Save Your Progress</h2>
+                  <p className="text-gray-600 mb-4">
+                    Create an account to save your quiz progress and track your learning journey
+                  </p>
+                  <div className="flex justify-center gap-4">
+                    <Button onClick={() => showAuthModalWithView("register")}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Sign Up
+                    </Button>
+                    <Button variant="outline" onClick={() => showAuthModalWithView("login")}>
+                      <LogIn className="h-4 w-4 mr-2" />
+                      Sign In
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* User Welcome Section */}
+            {user && (
+              <Card className="mb-8 border-green-200 bg-green-50">
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className="text-xl font-semibold mb-1">Welcome back, {user.name}!</h2>
+                      <p className="text-gray-600">Ready to continue your learning journey?</p>
+                    </div>
+                    <Button variant="outline" onClick={handleLogout}>
+                      Logout
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {user && (
+                <Card
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => setCurrentView("dashboard")}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserPlus className="h-5 w-5 text-purple-600" />
+                      Dashboard
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600">View your progress and continue saved quizzes</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={handleStartQuiz}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-blue-600" />
+                    Take Quiz
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">Start taking a quiz with various question types</p>
+                </CardContent>
+              </Card>
+
+              <Card
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => setCurrentView("manage-quiz")}
+              >
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-green-600" />
+                    Manage Quizzes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">Create, edit, and manage your quizzes</p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="h-5 w-5 text-purple-600" />
+                    Import JSON
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">Import quiz questions from JSON format</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="mt-12">
+              <h2 className="text-2xl font-bold text-center mb-6">Supported Question Types</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  "Multiple Choice",
+                  "True/False",
+                  "Fill in the Blank",
+                  "Short Answer",
+                  "Essay",
+                  "Matching",
+                  "Ordering",
+                  "Multiple Select",
+                ].map((type) => (
+                  <div key={type} className="bg-white p-4 rounded-lg shadow text-center">
+                    <span className="font-medium text-gray-700">{type}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {currentView === "dashboard" && user && (
+          <>
+            <Button variant="outline" onClick={() => setCurrentView("home")} className="mb-4">
+              ← Back to Home
+            </Button>
+            <ErrorBoundary>
+              <UserDashboard
+                user={user}
+                onLogout={handleLogout}
+                onResumeQuiz={handleResumeQuiz}
+                onStartQuiz={handleStartQuiz}
+              />
+            </ErrorBoundary>
+          </>
+        )}
+
+        {currentView === "take-quiz" && (
+          <div>
+            <Button
+              variant="outline"
+              onClick={() => (user ? setCurrentView("dashboard") : setCurrentView("home"))}
+              className="mb-4"
+            >
+              ← Back to {user ? "Dashboard" : "Home"}
+            </Button>
+            <ErrorBoundary>
+              <QuizTaker user={user} resumeProgress={resumeProgress} onProgressSaved={() => setResumeProgress(null)} />
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {currentView === "manage-quiz" && (
+          <div>
+            <Button
+              variant="outline"
+              onClick={() => (user ? setCurrentView("dashboard") : setCurrentView("home"))}
+              className="mb-4"
+            >
+              ← Back to {user ? "Dashboard" : "Home"}
+            </Button>
+            <ErrorBoundary>
+              <QuizManager />
+            </ErrorBoundary>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
