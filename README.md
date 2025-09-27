@@ -1,30 +1,22 @@
-# MERN web app
+# Quiz Master (MERN web app)
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+A Next.js App Router application for creating and taking quizzes with advanced question types, security settings, and user progress tracking.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/vasanthjan1816-8383s-projects/v0-mern-web-app)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/OEsAfNu3zMW)
+Quick links:
+- User Guide (for end users): docs/user-guide.md
+- Developer Guide (for contributors): docs/developer-guide.md
 
-## Overview
+Live workflow with Git + Vercel
+- Pushes to your Git repository create Preview deployments and merging to your production branch (commonly "main") creates a Production deployment. This makes it easy to review changes before going live [^2][^3][^4].
+- You can also create a deployment from a specific commit SHA or branch directly from the Vercel dashboard if automatic deployments are interrupted [^2][^4].
+- Configure environment variables in your Vercel project settings so both preview and production deployments have what they need [^5][^2].
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+Notes on environment variables
+- By default, environment variables are only available on the server. To read a variable on the client, prefix it with NEXT_PUBLIC_ [^5].
+- When deploying on Vercel, set your environment variables in Project Settings. You can also pull preview values locally via vercel env pull [^5].
 
-## Deployment
-
-Your project is live at:
-
-**[https://vercel.com/vasanthjan1816-8383s-projects/v0-mern-web-app](https://vercel.com/vasanthjan1816-8383s-projects/v0-mern-web-app)**
-
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.dev/chat/projects/OEsAfNu3zMW](https://v0.dev/chat/projects/OEsAfNu3zMW)**
-
-## How It Works
-
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+Sources:
+- [^2]: Deploying Git Repositories with Vercel
+- [^3]: Deploying GitHub Projects with Vercel
+- [^4]: Deploying Git Repositories with Vercel (overview)
+- [^5]: Next.js Environment Variables
